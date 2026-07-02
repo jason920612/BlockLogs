@@ -1,0 +1,21 @@
+name: BlockLogs
+version: '${version}'
+main: com.blocklogs.BlockLogsPlugin
+loader: com.blocklogs.BlockLogsLoader
+# NOTE: verify against a running 26.2 Paper server. '1.21' is a known-accepted value and targets a
+# baseline API level; newer 26.x APIs still resolve at runtime. Bump if the server requires it.
+api-version: '1.21'
+authors:
+  - jason
+description: Records all player-caused (direct and indirect) block, container, redstone and entity
+  changes, with a git-style causal query view, an inspector wand, rollback/restore, and a public API.
+permissions:
+  blocklogs.use:
+    description: Use /bl lookup, flat, inspect and session commands.
+    default: op
+  blocklogs.rollback:
+    description: Use /bl rollback and restore.
+    default: op
+  blocklogs.admin:
+    description: Use /bl purge and reload.
+    default: op

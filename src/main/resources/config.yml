@@ -1,0 +1,26 @@
+# BlockLogs configuration
+
+worlds:
+  # Worlds to log. Empty list = all worlds.
+  enabled: []
+
+logging:
+  blocks: true         # place / break / in-place state change / signs / explosions / flow
+  containers: true     # items inserted into or removed from containers
+  interactions: true   # levers, buttons, doors, repeaters, comparators, plates
+  redstone: false      # raw redstone power changes (very high volume — off by default)
+  entities: true       # kill / spawn / shear / breed / tame / leash / dye
+  items: true          # item drops and pickups
+
+storage:
+  retention-days: 60   # entries older than this are purged; 0 disables purging
+  writer:
+    batch-size: 500            # max entries written per transaction
+    flush-interval-ms: 1000    # how often the background writer flushes a partial batch
+
+causal:
+  # How long (ms) an indirect attribution (e.g. primed TNT -> player) stays valid.
+  ttl-ms: 5000
+
+rollback:
+  blocks-per-tick: 1000   # world edits applied per tick during rollback/restore
