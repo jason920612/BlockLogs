@@ -16,7 +16,7 @@ import com.blocklogs.core.storage.Database;
  */
 public final class BlockLogsServices {
 
-    private final BlockLogsConfig config;
+    private volatile BlockLogsConfig config;
     private final Database database;
     private final LoggingService logging;
     private final CausalTracker causalTracker;
@@ -44,6 +44,9 @@ public final class BlockLogsServices {
     }
 
     public BlockLogsConfig config() { return config; }
+
+    /** Swap in a freshly-loaded config (used by {@code /bl reload}). Listeners read {@link #config()} live. */
+    public void setConfig(BlockLogsConfig config) { this.config = config; }
     public Database database() { return database; }
     public LoggingService logging() { return logging; }
     public CausalTracker causalTracker() { return causalTracker; }

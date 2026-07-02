@@ -34,6 +34,8 @@ public final class QuerySession {
     /** Node ids currently expanded inline. */
     private final Set<Long> expanded = new HashSet<>();
     private int page = 0;
+    /** Whether sibling leaves are folded into ×N rows in the chat tree (toggled by /bl fold|unfold). */
+    private boolean aggregate = true;
 
     public QuerySession(UUID owner, Instant createdAt, QueryParams params) {
         this.owner = owner;
@@ -71,6 +73,9 @@ public final class QuerySession {
 
     public int page() { return page; }
     public void page(int page) { this.page = page; }
+
+    public boolean aggregate() { return aggregate; }
+    public void aggregate(boolean aggregate) { this.aggregate = aggregate; }
 
     /** Snapshot of the drill stack, root-first, for persistence. */
     public List<Long> navStackSnapshot() {

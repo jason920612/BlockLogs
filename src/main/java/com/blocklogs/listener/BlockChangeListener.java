@@ -103,9 +103,28 @@ public final class BlockChangeListener implements Listener {
         }
         Actor actor = LogSupport.actor(event.getPlayer());
         WorldPos pos = LogSupport.pos(block);
+        // Capture FRONT-side text before/after so rollback can restore it. A back-side edit leaves the
+        // front unchanged, so before == after and rollback/restore become safe no-ops on the front.
+        String before = frontText(block);
+        String after = event.getSide() == org.bukkit.block.sign.Side.FRONT
+                ? joinLines(event.lines())
+                : before;
         services.logging().record(actor, ActionType.SIGN_CHANGE, pos)
-                .block(LogSupport.material(block), null, joinLines(event.lines()))
+                .block(LogSupport.material(block), before, after)
                 .commit();
+    }
+
+    /** Current FRONT-side plain text of a sign block, newline-joined, or {@code null} if not a sign. */
+    private static String frontText(Block block) {
+        if (block.getState() instanceof org.bukkit.block.Sign sign) {
+            PlainTextComponentSerializer serializer = PlainTextComponentSerializer.plainText();
+            StringJoiner joiner = new StringJoiner("\n");
+            for (Component line : sign.getSide(org.bukkit.block.sign.Side.FRONT).lines()) {
+                joiner.add(line == null ? "" : serializer.serialize(line));
+            }
+            return joiner.toString();
+        }
+        return null;
     }
 
     /** Join sign lines into a single newline-separated plain-text string. */

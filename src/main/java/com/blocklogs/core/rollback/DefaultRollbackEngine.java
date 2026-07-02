@@ -184,6 +184,8 @@ public final class DefaultRollbackEngine implements RollbackEngine {
         if (ordered.isEmpty()) {
             return;
         }
+        // Per-tick budget read live from config (reflects /bl reload).
+        final int perTick = resolveBlocksPerTick();
         CountDownLatch done = new CountDownLatch(1);
         // Self-rescheduling runnable: each tick applies up to BLOCKS_PER_TICK entries, then yields.
         Runnable batch = new Runnable() {
@@ -192,7 +194,7 @@ public final class DefaultRollbackEngine implements RollbackEngine {
             @Override
             public void run() {
                 try {
-                    int end = Math.min(index + BLOCKS_PER_TICK, ordered.size());
+                    int end = Math.min(index + perTick, ordered.size());
                     for (; index < end; index++) {
                         applyOne(ordered.get(index), restore, agg);
                     }
@@ -213,6 +215,28 @@ public final class DefaultRollbackEngine implements RollbackEngine {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /** The per-tick edit budget, read live from config (falls back to the constant). */
+    private int resolveBlocksPerTick() {
+        if (plugin instanceof com.blocklogs.BlockLogsPlugin blp && blp.services() != null) {
+            return Math.max(1, blp.services().config().rollbackBlocksPerTick());
+        }
+        return BLOCKS_PER_TICK;
+    }
+
+    /** Restore FRONT-side sign text (newline-joined) onto a sign block. Returns true if applied. */
+    private boolean applySignText(Block block, String text) {
+        if (text == null || !(block.getState() instanceof org.bukkit.block.Sign sign)) {
+            return false;
+        }
+        org.bukkit.block.sign.SignSide side = sign.getSide(org.bukkit.block.sign.Side.FRONT);
+        String[] lines = text.split("\n", -1);
+        for (int i = 0; i < 4; i++) {
+            side.line(i, net.kyori.adventure.text.Component.text(i < lines.length ? lines[i] : ""));
+        }
+        sign.update(true, false);
+        return true;
     }
 
     /** Apply a single entry (already resolved to reversible). Runs on the main thread. */
@@ -274,13 +298,9 @@ public final class DefaultRollbackEngine implements RollbackEngine {
                 yield false;
             }
             case SIGN_CHANGE -> {
-                // SIGN_CHANGE stores the sign text in dataAfter (see BlockLogEntry javadoc); dataBefore
-                // would hold the prior text. Restoring raw sign text requires re-parsing the serialized
-                // lines onto a Sign state.
-                // TODO: parse the serialized sign text (dataBefore for undo / dataAfter for redo) back
-                // onto the Sign BlockState. Skipped for now — sign text format is owned by the sign
-                // listener part and not yet finalized.
-                yield false;
+                // Restore FRONT-side sign text: undo -> dataBefore, redo -> dataAfter (newline-joined).
+                String target = restore ? entry.dataAfter() : entry.dataBefore();
+                yield applySignText(block, target);
             }
             default -> false;
         };

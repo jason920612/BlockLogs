@@ -80,7 +80,7 @@ public final class TreeRenderer {
         }
 
         List<CausalNode> visible = paginate(roots, session.page());
-        List<Row> rows = aggregate(visible);
+        List<Row> rows = session.aggregate() ? aggregate(visible) : singles(visible);
 
         int i = 0;
         for (Row row : rows) {
@@ -156,12 +156,9 @@ public final class TreeRenderer {
                     .append(Component.text(shortMaterial(materialOf(row.representative())), C_MATERIAL));
             // aggregate hover summarises the range
             line = line.hoverEvent(HoverEvent.showText(aggregateHover(row)));
-            // aggregated rows still let you drill into the first; expand shows them individually
-            if (row.anyHasChildren()) {
-                line = line.append(Component.space())
-                        .append(link("[展開]", "/bl expand " + row.representative().entry().id(),
-                                "展開這些節點的子項", C_LINK));
-            }
+            // Un-aggregate this level so every folded node is listed individually.
+            line = line.append(Component.space())
+                    .append(link("[展開]", "/bl unfold", "展開此層所有聚合節點", C_LINK));
             return line;
         }
 
@@ -283,6 +280,15 @@ public final class TreeRenderer {
                 rows.add(Row.single(first));
             }
             i = j;
+        }
+        return rows;
+    }
+
+    /** One row per node — used when the user has toggled aggregation off (/bl unfold). */
+    private List<Row> singles(List<CausalNode> nodes) {
+        List<Row> rows = new ArrayList<>(nodes.size());
+        for (CausalNode n : nodes) {
+            rows.add(Row.single(n));
         }
         return rows;
     }

@@ -1,5 +1,7 @@
 # BlockLogs
 
+[![build](https://github.com/jason920612/BlockLogs/actions/workflows/build.yml/badge.svg)](https://github.com/jason920612/BlockLogs/actions/workflows/build.yml)
+
 A Paper **26.2** (Java 25) plugin that records every player-caused change to the world — direct **and
 indirect** — and lets you inspect and roll it back. Blocks placed/broken, block-state changes (redstone
 repeater delays, orientations, open/closed…), container item transactions, redstone, and entity/animal

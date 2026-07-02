@@ -125,4 +125,15 @@ public final class BlockLogsPlugin extends JavaPlugin {
     public BlockLogsServices services() {
         return services;
     }
+
+    /**
+     * Reload {@code config.yml} and swap the typed view into the services so listeners pick up new
+     * world/category toggles and retention live. The async writer's batch size / flush interval and the
+     * causal TTL are captured at construction and only change on a full restart.
+     */
+    public void reload() {
+        reloadConfig();
+        services.setConfig(new BlockLogsConfig(getConfig()));
+        getLogger().info("BlockLogs config reloaded (writer batch size & causal TTL take effect on restart).");
+    }
 }

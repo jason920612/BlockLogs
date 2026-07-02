@@ -48,7 +48,7 @@ public final class BlCommand implements BasicCommand {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "help", "lookup", "flat", "gui", "find", "inspect", "expand", "goto", "back", "page",
-            "session", "log", "rollback", "restore", "purge", "reload");
+            "session", "log", "rollback", "restore", "purge", "reload", "fold", "unfold");
 
     private static final List<String> FILTER_KEYS = List.of(
             "user:", "a:", "r:", "t:", "world:", "b:");
@@ -95,6 +95,8 @@ public final class BlCommand implements BasicCommand {
             case "restore", "rs" -> rollback(sender, rest, true);
             case "purge" -> purge(sender, rest);
             case "reload" -> reload(sender);
+            case "unfold" -> setAggregate(sender, false);
+            case "fold" -> setAggregate(sender, true);
             default -> {
                 sender.sendMessage(Component.text("未知的子指令: " + args[0], NamedTextColor.RED));
                 sendHelp(sender);
@@ -392,13 +394,30 @@ public final class BlCommand implements BasicCommand {
             noPerm(sender, "blocklogs.admin");
             return;
         }
-        // Reload the raw config.yml off disk. NOTE: this refreshes the FileConfiguration but does NOT
-        // rebuild the typed BlockLogsConfig held by BlockLogsServices — those fields are captured at
-        // construction. Full hot-reload (rebuilding the config view + re-tuning the writer) is wired by
-        // the assembler in BlockLogsPlugin. TODO(assembler): rebuild BlockLogsConfig after reloadConfig().
-        plugin.reloadConfig();
-        sender.sendMessage(Component.text("已重新載入 config.yml (部分設定需重啟才會生效)。",
-                NamedTextColor.YELLOW));
+        if (plugin instanceof com.blocklogs.BlockLogsPlugin blp) {
+            blp.reload();
+            sender.sendMessage(Component.text("已重新載入 config.yml (寫入批次與因果 TTL 需重啟才生效)。",
+                    NamedTextColor.GREEN));
+        } else {
+            plugin.reloadConfig();
+            sender.sendMessage(Component.text("已重新載入 config.yml。", NamedTextColor.YELLOW));
+        }
+    }
+
+    /** Toggle chat-tree aggregation (folded ×N rows) for the active session, then re-render. */
+    private void setAggregate(CommandSender sender, boolean aggregate) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Component.text("僅玩家可用。", NamedTextColor.RED));
+            return;
+        }
+        QuerySession session = services.sessionManager().active(player.getUniqueId());
+        if (session == null) {
+            sender.sendMessage(Component.text("沒有進行中的查詢，請先執行 /bl lookup。", NamedTextColor.RED));
+            return;
+        }
+        session.aggregate(aggregate);
+        session.page(0);
+        rerender(sender, session);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
